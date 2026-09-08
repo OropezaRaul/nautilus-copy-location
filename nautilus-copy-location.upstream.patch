@@ -1,0 +1,64 @@
+From 2c8440cb2777e5ec6cd01fdd833b02f9bcd282b9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ra=C3=BAl=20Oropeza?=
+ <raulalejandrooropezabatista@gmail.com>
+Date: Tue, 8 Sep 2026 08:05:16 -0500
+Subject: [PATCH] view: Make Copy Location put the plain path on the clipboard
+
+Copy Location in the pathbar context menu currently copies the current
+directory as a file transfer (x-special/gnome-copied-files, text/uri-list
+and application/vnd.portal.filetransfer) - the same clipboard as Ctrl+C.
+
+Apps that resolve pasted files interpret that as pasting the folder: a
+Chromium-based page turns the portal file transfer into File objects and,
+in a chat or agent UI, non-image files are then rejected as unsupported
+image attachments ("Only PNG, JPG, WebP, and GIF images are supported"),
+and messaging apps start a file upload instead of inserting the path.
+
+Copy the absolute path as plain text instead (the URI for non-local
+locations, e.g. GVFS), matching what selecting the full path in the
+location entry and copying produces. Copying files and folders with
+Ctrl+C is unaffected.
+---
+ src/nautilus-files-view.c | 22 ++++++++++++++--------
+ 1 file changed, 14 insertions(+), 8 deletions(-)
+
+diff --git a/src/nautilus-files-view.c b/src/nautilus-files-view.c
+index 17b410b..4cb967d 100644
+--- a/src/nautilus-files-view.c
++++ b/src/nautilus-files-view.c
+@@ -5929,18 +5929,24 @@ action_copy_current_location (GSimpleAction *action,
+                               gpointer       user_data)
+ {
+     NautilusFilesView *self = user_data;
++    GFile *location;
++    g_autofree char *text = NULL;
+     GdkClipboard *clipboard;
+-    GList *files;
+ 
+-    if (self->directory_as_file != NULL)
++    location = nautilus_files_view_get_location (self);
++    if (location == NULL)
+     {
+-        files = g_list_append (NULL, nautilus_file_ref (self->directory_as_file));
+-
+-        clipboard = gtk_widget_get_clipboard (GTK_WIDGET (self));
+-        nautilus_clipboard_prepare_for_files (clipboard, files, FALSE);
+-
+-        nautilus_file_list_free (files);
++        return;
+     }
++
++    text = g_file_get_path (location);
++    if (text == NULL)
++    {
++        text = g_file_get_uri (location);
++    }
++
++    clipboard = gtk_widget_get_clipboard (GTK_WIDGET (self));
++    gdk_clipboard_set_text (clipboard, text);
+ }
+ 
+ static void
+-- 
+2.55.0
+
