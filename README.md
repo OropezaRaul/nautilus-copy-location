@@ -1,5 +1,14 @@
 # nautilus-copy-location
 
+> ## ⚠️ Aviso de autoría — este NO es un proyecto original
+>
+> Este repositorio es el **código fuente completo de [GNOME Nautilus](https://gitlab.gnome.org/GNOME/nautilus)**
+> (la app "Files", versión 50.2.2, licencia GPL-3.0-or-later) con **una única
+> corrección** de mi parte: la entrada **"Copy Location"** ahora copia la ruta
+> como texto plano. Considero que el comportamiento original era un error, pero
+> **todo el crédito del programa es de la comunidad GNOME**: yo solo aporté ese
+> cambio puntual y esta documentación.
+
 GNOME Files (Nautilus) **50.2.2** con un arreglo a la entrada **"Copy Location"**
 del menú contextual de la barra de ruta: ahora copia la ruta como **texto plano**,
 en vez de poner en el portapapeles una transferencia de archivos.
