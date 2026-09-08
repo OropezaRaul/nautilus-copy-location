@@ -1,0 +1,76 @@
+#!/bin/bash
+# post-update.d/keep-nautilus-copy-location.hook
+#
+# Mantiene instalado el build local de Nautilus que arregla la entrada
+# "Copy Location" de Files (copia la ruta en texto plano en vez de poner un
+# portapapeles de transferencia de archivos).
+#
+# Se ejecuta durante `omarchy update`, después de los paquetes del sistema y
+# las migraciones. El respaldo lo aporta el propio flujo (snapper crea un
+# snapshot antes de la actualización y este proyecto guarda sources + paquetes);
+# este hook es el paso de REAPLICACIÓN: si un update o un cambio manual dejó un
+# nautilus sin parche, recompila desde las fuentes pinneadas del proyecto e
+# instala, y re-asegura IgnorePkg para que el repositorio no lo reemplace.
+#
+# Subir a una versión nueva de upstream: actualiza sources/PKGBUILD en
+# $HOME/Projects/Coding/Omarchy/nautilus-copy-location (README lo explica) y
+# borra los *.pkg.tar.zst viejos; el hook recompilará la versión nueva.
+
+set -uo pipefail
+
+PROJECT="$HOME/Projects/Coding/Omarchy/nautilus-copy-location"
+STATE="$HOME/.local/state/omarchy/nautilus-copy-location"
+
+# --- fast path: el binario instalado ya es nuestro build parcheado ---------
+installed_is_patched() {
+    local pkg
+    for pkg in "$PROJECT"/nautilus-[0-9]*.pkg.tar.zst; do
+        [[ -f "$pkg" ]] || continue
+        if bsdtar -xOf "$pkg" usr/bin/nautilus 2>/dev/null | cmp -s - /usr/bin/nautilus; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+command -v makepkg >/dev/null 2>&1 || exit 0
+command -v bsdtar >/dev/null 2>&1 || exit 0
+[[ -f "$PROJECT/PKGBUILD" ]] || exit 0
+[[ -x /usr/bin/nautilus ]] || exit 0
+
+if installed_is_patched; then
+    exit 0
+fi
+
+if [[ ${OMARCHY_NAUTILUS_HOOK_DRYRUN:-0} == 1 ]]; then
+    echo "nautilus-copy-location: falta el build parcheado; recompilaría e instalaría desde $PROJECT"
+    exit 0
+fi
+
+# --- recompilar y reinstalar ----------------------------------------------
+mkdir -p "$STATE"
+echo "nautilus-copy-location: reinstalando build parcheado de Nautilus desde $PROJECT"
+if ! ( cd "$PROJECT" && makepkg --nocheck --cleanbuild >/tmp/nautilus-copy-location-build.log 2>&1 ); then
+    echo "nautilus-copy-location: falló la recompilación (ver /tmp/nautilus-copy-location-build.log)"
+    omarchy-notification-send -u critical -g "🩹" "Parche de Nautilus no aplicado" \
+      "Falló la recompilación; ver /tmp/nautilus-copy-location-build.log" >/dev/null 2>&1 || true
+    exit 1
+fi
+
+package="$(ls "$PROJECT"/nautilus-[0-9]*.pkg.tar.zst | head -1)"
+libne="$(ls "$PROJECT"/libnautilus-extension-[0-9]*.pkg.tar.zst | head -1)"
+libdocs="$(ls "$PROJECT"/libnautilus-extension-docs-[0-9]*.pkg.tar.zst | head -1)"
+if [[ -n "$package" && -n "$libne" && -n "$libdocs" ]]; then
+    sudo pacman -U --noconfirm "$package" "$libne" "$libdocs" >/dev/null 2>&1
+fi
+
+# --- IgnorePkg: que pacman nunca cambie a un build de repo sin el parche ----
+if ! grep -qs '^IgnorePkg = nautilus ' /etc/pacman.conf; then
+    printf '\n# Omarchy local: nautilus recompilado para que "Copy Location" copie la ruta en texto plano\nIgnorePkg = nautilus libnautilus-extension libnautilus-extension-docs\n' \
+        | sudo tee -a /etc/pacman.conf >/dev/null
+fi
+
+# --- registro --------------------------------------------------------------
+pacman -Q nautilus > "$STATE/installed" 2>/dev/null || true
+date -Is > "$STATE/last-reapplied"
+exit 0
