@@ -1,6 +1,6 @@
 --- a/src/nautilus-files-view.c
 +++ b/src/nautilus-files-view.c
-@@ -5855,18 +5855,24 @@
+@@ -5852,18 +5852,24 @@
                                gpointer       user_data)
  {
      NautilusFilesView *self = user_data;
@@ -8,7 +8,7 @@
 +    g_autofree char *text = NULL;
      GdkClipboard *clipboard;
 -    GList *files;
- 
+
 -    if (self->directory_as_file != NULL)
 +    location = nautilus_files_view_get_location (self);
 +    if (location == NULL)
@@ -19,7 +19,7 @@
 -        nautilus_clipboard_prepare_for_files (clipboard, files, FALSE);
 +        return;
 +    }
- 
+
 -        nautilus_file_list_free (files);
 +    text = g_file_get_path (location);
 +    if (text == NULL)
@@ -30,5 +30,5 @@
 +    clipboard = gtk_widget_get_clipboard (GTK_WIDGET (self));
 +    gdk_clipboard_set_text (clipboard, text);
  }
- 
+
  static void

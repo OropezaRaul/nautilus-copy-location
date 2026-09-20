@@ -9,26 +9,22 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 # 1) Compilar si no hay paquetes listos (o forzar con --rebuild)
-if [[ ${1-} == "--rebuild" ]] || ! ls nautilus-*.pkg.tar.zst >/dev/null 2>&1; then
-  echo "==> Compilando nautilus 50.2.2 + parche Copy Location…"
-  makepkg --nocheck --cleanbuild
+if [[ ${1-} == "--rebuild" ]] || ! ls nautilus-[0-9]*.pkg.tar.zst >/dev/null 2>&1; then
+  echo "==> Compilando nautilus 50.3.1 + parche Copy Location…"
+  makepkg --nocheck --cleanbuild --force
 fi
 
 # 2) Instalar (reemplaza el binario oficial por la misma versión, parcheada)
 echo "==> Instalando…"
 sudo pacman -U --noconfirm \
-  nautilus-*.pkg.tar.zst \
-  libnautilus-extension-*.pkg.tar.zst \
-  libnautilus-extension-docs-*.pkg.tar.zst
+  nautilus-[0-9]*.pkg.tar.zst \
+  libnautilus-extension-[0-9]*.pkg.tar.zst \
+  libnautilus-extension-docs-[0-9]*.pkg.tar.zst
 
-# 3) Evitar que el repositorio deshaga el parche
+# 3) Evitar que el repositorio deshaga el parche (debe ir dentro de [options], no al final)
 if ! grep -qs '^IgnorePkg = nautilus ' /etc/pacman.conf; then
-  echo "==> Añadiendo IgnorePkg a /etc/pacman.conf"
-  sudo tee -a /etc/pacman.conf >/dev/null <<'EOF'
-
-# Omarchy local: nautilus recompilado para que "Copy Location" copie la ruta en texto plano
-IgnorePkg = nautilus libnautilus-extension libnautilus-extension-docs
-EOF
+  echo "==> Añadiendo IgnorePkg a /etc/pacman.conf bajo [options]"
+  sudo sed -i '/^\[options\]/a # Omarchy local: nautilus recompilado para que "Copy Location" copie la ruta en texto plano\nIgnorePkg = nautilus libnautilus-extension libnautilus-extension-docs' /etc/pacman.conf
 fi
 
 echo

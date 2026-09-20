@@ -35,5 +35,5 @@ operations keep working.
 ## Tested
 
 - Patch applies cleanly to `main` (commit built on top of 301d1849).
-- Same code path compiled and verified on the 50.2.2 tag on Omarchy
+- Same code path compiled and verified on 50.2.2 and 50.3.1 on Omarchy
   (Arch-based) in daily use.

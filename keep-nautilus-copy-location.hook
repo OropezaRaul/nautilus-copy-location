@@ -13,12 +13,15 @@
 # instala, y re-asegura IgnorePkg para que el repositorio no lo reemplace.
 #
 # Subir a una versión nueva de upstream: actualiza sources/PKGBUILD en
-# $HOME/Projects/Coding/Omarchy/nautilus-copy-location (README lo explica) y
+# $HOME/Projects/Coding/nautilus-copy-location (README lo explica) y
 # borra los *.pkg.tar.zst viejos; el hook recompilará la versión nueva.
 
 set -uo pipefail
 
-PROJECT="$HOME/Projects/Coding/Omarchy/nautilus-copy-location"
+PROJECT="$HOME/Projects/Coding/nautilus-copy-location"
+if [[ ! -d "$PROJECT" && -d "$HOME/Projects/Coding/Omarchy/nautilus-copy-location" ]]; then
+    PROJECT="$HOME/Projects/Coding/Omarchy/nautilus-copy-location"
+fi
 STATE="$HOME/.local/state/omarchy/nautilus-copy-location"
 
 # --- fast path: el binario instalado ya es nuestro build parcheado ---------
@@ -50,10 +53,9 @@ fi
 # --- recompilar y reinstalar ----------------------------------------------
 mkdir -p "$STATE"
 echo "nautilus-copy-location: reinstalando build parcheado de Nautilus desde $PROJECT"
-if ! ( cd "$PROJECT" && makepkg --nocheck --cleanbuild >/tmp/nautilus-copy-location-build.log 2>&1 ); then
+if ! ( cd "$PROJECT" && makepkg --nocheck --cleanbuild --force >/tmp/nautilus-copy-location-build.log 2>&1 ); then
     echo "nautilus-copy-location: falló la recompilación (ver /tmp/nautilus-copy-location-build.log)"
-    omarchy-notification-send -u critical -g "🩹" "Parche de Nautilus no aplicado" \
-      "Falló la recompilación; ver /tmp/nautilus-copy-location-build.log" >/dev/null 2>&1 || true
+    omarchy-notification-send -u critical -g "🩹" "Parche de Nautilus no aplicado"       "Falló la recompilación; ver /tmp/nautilus-copy-location-build.log" >/dev/null 2>&1 || true
     exit 1
 fi
 
@@ -66,8 +68,7 @@ fi
 
 # --- IgnorePkg: que pacman nunca cambie a un build de repo sin el parche ----
 if ! grep -qs '^IgnorePkg = nautilus ' /etc/pacman.conf; then
-    printf '\n# Omarchy local: nautilus recompilado para que "Copy Location" copie la ruta en texto plano\nIgnorePkg = nautilus libnautilus-extension libnautilus-extension-docs\n' \
-        | sudo tee -a /etc/pacman.conf >/dev/null
+    sudo sed -i '/^\[options\]/a # Omarchy local: nautilus recompilado para que "Copy Location" copie la ruta en texto plano\nIgnorePkg = nautilus libnautilus-extension libnautilus-extension-docs' /etc/pacman.conf
 fi
 
 # --- registro --------------------------------------------------------------

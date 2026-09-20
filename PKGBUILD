@@ -9,7 +9,7 @@ pkgname=(
   libnautilus-extension
   libnautilus-extension-docs
 )
-pkgver=50.2.2
+pkgver=50.3.1
 pkgrel=1
 pkgdesc="Default file manager for GNOME (Omarchy patch: Copy Location copies plain-text path)"
 url="https://apps.gnome.org/Nautilus/"
@@ -58,16 +58,16 @@ checkdepends=(
   python-gobject
 )
 source=(
-  nautilus-50.2.2.tar.gz
+  nautilus-50.3.1.tar.xz
   nautilus-copy-location-text.patch
 )
 sha256sums=(
-  '8e76a2aeff884ce4412092b7c04d68d119b8934c1d81b76e1497d41c7f0ef1b8'
-  '6167b111d77374d5b2c6edf0eaf4db35d76905ff61a75539f024223b95e7d9e1'
+  '71d54703cc6095db829baa13ad9d853d18b49cb84cae3e0b927ed6f3cf679a1f'
+  'b9f3a0de0ee90c2b2bdd4dd42e649824274090b452122177ce9ac795ff986245'
 )
 
 prepare() {
-  cd nautilus-50.2.2
+  cd nautilus-50.3.1
   patch -Np1 -i ../nautilus-copy-location-text.patch
 }
 
@@ -88,7 +88,7 @@ build() {
     -D selinux=false
   )
 
-  meson setup nautilus-50.2.2 build "${meson_options[@]}"
+  meson setup nautilus-50.3.1 build "${meson_options[@]}"
   meson compile -C build
 }
 

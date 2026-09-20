@@ -3,13 +3,13 @@
 > ## ⚠️ Aviso de autoría — este NO es un proyecto original
 >
 > Este repositorio es el **código fuente completo de [GNOME Nautilus](https://gitlab.gnome.org/GNOME/nautilus)**
-> (la app "Files", versión 50.2.2, licencia GPL-3.0-or-later) con **una única
+> (la app "Files", versión 50.3.1, licencia GPL-3.0-or-later) con **una única
 > corrección** de mi parte: la entrada **"Copy Location"** ahora copia la ruta
 > como texto plano. Considero que el comportamiento original era un error, pero
 > **todo el crédito del programa es de la comunidad GNOME**: yo solo aporté ese
 > cambio puntual y esta documentación.
 
-GNOME Files (Nautilus) **50.2.2** con un arreglo a la entrada **"Copy Location"**
+GNOME Files (Nautilus) **50.3.1** con un arreglo a la entrada **"Copy Location"**
 del menú contextual de la barra de ruta: ahora copia la ruta como **texto plano**,
 en vez de poner en el portapapeles una transferencia de archivos.
 
@@ -57,45 +57,47 @@ Diff exacto en [`nautilus-copy-location-text.patch`](nautilus-copy-location-text
 ```diff
 --- a/src/nautilus-files-view.c
 +++ b/src/nautilus-files-view.c
+@@ -5852,18 +5852,24 @@
+                               gpointer       user_data)
+ {
+     NautilusFilesView *self = user_data;
++    GFile *location;
++    g_autofree char *text = NULL;
+     GdkClipboard *clipboard;
 -    GList *files;
--
+
 -    if (self->directory_as_file != NULL)
--    {
++    location = nautilus_files_view_get_location (self);
++    if (location == NULL)
+     {
 -        files = g_list_append (NULL, nautilus_file_ref (self->directory_as_file));
 -
 -        clipboard = gtk_widget_get_clipboard (GTK_WIDGET (self));
 -        nautilus_clipboard_prepare_for_files (clipboard, files, FALSE);
--
--        nautilus_file_list_free (files);
--    }
-+    GFile *location;
-+    g_autofree char *text = NULL;
-+
-+    location = nautilus_files_view_get_location (self);
-+    if (location == NULL)
-+    {
 +        return;
 +    }
-+
+
+-        nautilus_file_list_free (files);
 +    text = g_file_get_path (location);
 +    if (text == NULL)
 +    {
 +        text = g_file_get_uri (location);
-NaN
+     }
 +
-NaN
-NaN
++    clipboard = gtk_widget_get_clipboard (GTK_WIDGET (self));
++    gdk_clipboard_set_text (clipboard, text);
+ }
 ```
 
 ## Estructura del repositorio
 
 | Ruta | Contenido |
 |---|---|
-| `src/nautilus-50.2.2/` | Código fuente íntegro de Nautilus **50.2.2** (tag upstream) **con el fix aplicado** |
+| `src/nautilus-50.3.1/` | Código fuente íntegro de Nautilus **50.3.1** (tag upstream) **con el fix aplicado** |
 | `nautilus-copy-location-text.patch` | El parche del fix (diff unificado) |
 | `nautilus-copy-location.upstream.patch` | El commit en formato `git format-patch` (para MR a upstream) |
 | `mr-description.md` | Descripción lista para un merge request de GNOME |
-| `nautilus-50.2.2.tar.gz` | Source tag 50.2.2 (git archive) — lo usa el PKGBUILD, sin red |
+| `nautilus-50.3.1.tar.xz` | Source tag 50.3.1 upstream — lo usa el PKGBUILD, sin red |
 | `PKGBUILD` | Empaquetado Arch (basado en el oficial + `prepare()` que aplica el parche) |
 | `install.sh` | Recompila, instala y protege del repositorio (`IgnorePkg`) |
 | `keep-nautilus-copy-location.hook` | Hook `post-update.d` para el flujo de Omarchy |
@@ -107,11 +109,13 @@ NaN
 pkill nautilus   # o reiniciar Files
 ```
 
-`install.sh` hace: `makepkg --nocheck --cleanbuild` (fuentes locales, sin red),
+`install.sh` hace: `makepkg --nocheck --cleanbuild --force` (fuentes locales, sin red),
 `sudo pacman -U` de `nautilus`, `libnautilus-extension` y
-`libnautilus-extension-docs`, y añade a `/etc/pacman.conf`:
+`libnautilus-extension-docs`, y asegura en `/etc/pacman.conf` (bajo `[options]`):
 
 ```ini
+[options]
+...
 IgnorePkg = nautilus libnautilus-extension libnautilus-extension-docs
 ```
 
@@ -157,7 +161,7 @@ git push -u origin copy-location-plain-text
 
 ## Verificación
 
-- Reproducido en Nautilus 50.2.2 instalado y en `main` upstream: ambos usan
+- Reproducido en Nautilus 50.2.2 y 50.3.1 y en `main` upstream: ambos usan
   `nautilus_clipboard_prepare_for_files`.
 - El manejador de pegado del cliente web DSH eleva `UnsupportedImageMediaTypeError`
   cuando un `File` pegado no es PNG/JPG/WebP/GIF → mensaje `image.unsupportedType`.
@@ -167,4 +171,4 @@ git push -u origin copy-location-plain-text
 ## Licencia
 
 El código fuente incluido es de GNOME Nautilus (GPL-3.0-or-later, ver
-`src/nautilus-50.2.2/LICENSE` y `src/nautilus-50.2.2/LICENSES/`).
+`src/nautilus-50.3.1/LICENSE` y `src/nautilus-50.3.1/LICENSES/`).

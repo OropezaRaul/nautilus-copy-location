@@ -1,6 +1,5 @@
-From 2c8440cb2777e5ec6cd01fdd833b02f9bcd282b9 Mon Sep 17 00:00:00 2001
-From: =?UTF-8?q?Ra=C3=BAl=20Oropeza?=
- <raulalejandrooropezabatista@gmail.com>
+From 891d016a5e438918ec8e3eb0480ad31b60b7b7b2 Mon Sep 17 00:00:00 2001
+From: Raúl Oropeza <raulalejandrooropezabatista@gmail.com>
 Date: Tue, 8 Sep 2026 08:05:16 -0500
 Subject: [PATCH] view: Make Copy Location put the plain path on the clipboard
 
@@ -23,10 +22,10 @@ Ctrl+C is unaffected.
  1 file changed, 14 insertions(+), 8 deletions(-)
 
 diff --git a/src/nautilus-files-view.c b/src/nautilus-files-view.c
-index 17b410b..4cb967d 100644
+index a8e2bb6..50058b7 100644
 --- a/src/nautilus-files-view.c
 +++ b/src/nautilus-files-view.c
-@@ -5929,18 +5929,24 @@ action_copy_current_location (GSimpleAction *action,
+@@ -5852,18 +5852,24 @@ action_copy_current_location (GSimpleAction *action,
                                gpointer       user_data)
  {
      NautilusFilesView *self = user_data;
@@ -34,7 +33,7 @@ index 17b410b..4cb967d 100644
 +    g_autofree char *text = NULL;
      GdkClipboard *clipboard;
 -    GList *files;
- 
+
 -    if (self->directory_as_file != NULL)
 +    location = nautilus_files_view_get_location (self);
 +    if (location == NULL)
@@ -46,19 +45,18 @@ index 17b410b..4cb967d 100644
 -
 -        nautilus_file_list_free (files);
 +        return;
-     }
-+
++    }
+
 +    text = g_file_get_path (location);
 +    if (text == NULL)
 +    {
 +        text = g_file_get_uri (location);
-+    }
+     }
 +
 +    clipboard = gtk_widget_get_clipboard (GTK_WIDGET (self));
 +    gdk_clipboard_set_text (clipboard, text);
  }
- 
+
  static void
 -- 
 2.55.0
-
